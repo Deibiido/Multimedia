@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+    	body{background:black;text-align:center;}
+    	canvas{background:white;margin:auto;}
+    </style>
+  </head>
+  <body>
+  	    <audio id="sonidomuerte" src="muerte.mp3"></audio>
+  	    <audio id="sonidoost" src="ost.mp3"></audio>
+  	<canvas></canvas>
+  	<script>
+        var musica = document.getElementById("sonidoost");
+        musica.volume = 0.5; // Volumen moderado
+        musica.play();
+        
+        const melodia = document.getElementById("sonidomuerte");
+        melodia.playbackRate = 2;                                                     // Aumenta la velocidad (1.5 = 50% más rápido)
+          function reproducirMuerte() {
+              console.log("Musica reproducida");
+            melodia.currentTime = 0;                                                   //Reinicia el sonido
+            melodia.volume = 0.3; 
+            melodia.play();                                                             //Inicia el sonido
+                }
+  	/////////////////// VARIABLES GLOBALES ////////////////////////////////
+    	let lienzo = document.querySelector("canvas")			                       //Selecciono el lienzo en el que vamos a dibujar
+      	let contexto = lienzo.getContext("2d")				                           //Creo un contexto para dibujar en 2D
+      	let rojo = Math.round(Math.random()*255)                                       //Variable para crear un color aleatorio de rojo entre 0 y 255
+      	let verde = Math.round(Math.random()*255)                                      //Variable para crear un color aleatorio de verde entre 0 y 255
+      	let azul = Math.round(Math.random()*255)                                       //Variable para crear un color aleatorio de azul entre 0 y 255
+      	let jugador = {
+      		"posx":Math.random()*1024,                                                 //Spawn aleatorio del personaje en la X
+      		"posy":Math.random()*1024,                                                 //Spawn aleatorio del personaje en la Y
+      		"color":"rgb("+rojo+","+verde+","+azul+")",                                //Color aleatorio decidido por los parametros mencionados anteriormente
+      		"direccion":0
+      	}								                                               //El conjunto de eso define el jugador inicial
+      	const socket = new WebSocket("wss://jotauve.es:3000");                         //Creo una nueva conexión de sockets
+      	let paso = 8							                                       //Velocidad con la que se mueve el personaje en el lienzo
+     	/////////////////// VARIABLES GLOBALES ////////////////////////////////
+      	
+      	/////////////////// PROPIEDADES DEL LIENZO ////////////////////////////////
+      	
+      	lienzo.width = 1024;						                                   //Anchura lienzo 1024
+      	lienzo.height = 1024;						                                   //Altura lienzo 1024
+      	dibujaJugador(jugador.posx,jugador.posy,jugador.color)		                   //Dibuja al jugador con sus tres variables, posx posy color
+      	
+      	/////////////////// PROPIEDADES DEL LIENZO ////////////////////////////////
+      	
+      	
+        /////////////////// TRABAJO CON SOCKETS ////////////////////////////////
+
+        socket.addEventListener("open", (event) => {                                    //Cuando alguien me abre una conexion
+          console.log("WebSocket connection opened");                                   //Saca por consola conexión abierta
+        	
+        });
+
+        socket.addEventListener("error", (event) => {                                   //Si hay algún error
+          console.error("WebSocket error:", event);                                     //Dime donde está
+        });
+
+        socket.addEventListener("message", (event) => {                                 //Cuando el server me envíe un mensaje             
+          let  datos = JSON.parse(event.data)                                           //Nombro eso como Datos y quiero que me lo pase por JSON
+          console.log("El servidor me dice:")
+          console.log(datos)                                                            //Y saco por pantalla el valor de datos
+          dibujaJugador(datos.posx,datos.posy,datos.color)
+        });
+        
+        /////////////////// TRABAJO CON SOCKETS ////////////////////////////////
+        
+        /////////////////// FUNCION DE DIBUJO DE LOS PERSONAJES ////////////////////////////////
+      
+      function dibujaJugador(x,y,color){		                                        //La funcion admite tres parametros
+      	contexto.fillStyle = color				                                        //Quiero pintar del mismo color que el personaje
+      	contexto.beginPath();					                                        //Empiezo a dibujar
+      	contexto.arc(x,y,3,0,Math.PI*2)			                                        //Dibujo un circulo
+      	contexto.fill()						                                            //Relleno el circulo de color
+      }                                                                                 //Básicamente el camino que estamos realizando son circulos del mismo color, con eso hacemos nuestro "dibujo"
+      
+      /////////////////// FUNCION DE DIBUJO DE LOS PERSONAJES ////////////////////////////////
+      
+      /////////////////// CONTROLES DE TECLADO ////////////////////////////////
+      
+      document.addEventListener('keydown', function(event) {
+	    switch(event.key) {
+	        case 'w':
+	        case 'W':
+	            jugador.posy-=paso				                                         //Actualizo la posicion del personaje
+	            jugador.direccion = 0
+	            break;
+	        case 'a':
+	        case 'A':
+	            jugador.posx-=paso				                                         //Actualizo la posicion del personaje
+	            jugador.direccion = 1
+	            break;
+	        case 's':
+	        case 'S':
+	            jugador.posy+=paso				                                         //Actualizo la posicion del personaje
+	            jugador.direccion = 2
+	            break;
+	        case 'd':
+	        case 'D':
+	            jugador.posx+=paso				                                         //Actualizo la posicion del personaje
+	            jugador.direccion = 3
+	            break;
+	    }
+	    dibujaJugador(jugador.posx,jugador.posy,jugador.color)	                        //Dibujo al personaje con su posicion actualizada
+	    socket.send(JSON.stringify(jugador));		                                    //Envio al resto de jugadores mi posicion y mi color
+	    let pixel;						                                                //Declaro un pixel
+	    jugador.posx = parseInt(Math.round(jugador.posx))	                            //Me aseguro que las posiciones sean numero enteros
+	    jugador.posy = parseInt(Math.round(jugador.posy))
+/////////////////// CONTROLES DE TECLADO ////////////////////////////////
+          
+          ////////////////////////////  CONDICIÓN DE MUERTE /////////////////////////////////
+	    switch(jugador.direccion){				                                        //Evaluo cual es la direccion del personaje
+	     	case 0:						                                                //En el caso de que vaya hacia arriba
+	     		pixel = contexto.getImageData(
+	     		jugador.posx,
+	     		jugador.posy-paso*2,
+	     		1,
+	     		1)					                                                    //Mira el pixel que esta un poco mas arriba
+	     		break;
+	     	case 1:					                                                    //en el caso de que vaya hacia izquierda
+	     		pixel = contexto.getImageData(jugador.posx-paso*4,jugador.posy,1,1)     //Mira el pixel que esta un poco mas a la izquierda
+	     		break;
+	     	case 2:					                                                    //En el caso de que vaya hacia abajo
+	     		pixel = contexto.getImageData(jugador.posx,jugador.posy+paso*4,1,1)     //Mira el pixel que esta un poco mas abajo
+	     		break;
+	     	case 3:					                                                    //En el caso de que vaya hacia derecha
+	     		pixel = contexto.getImageData(jugador.posx+paso*4,jugador.posy,1,1)     //Mira el pixel que esta un poco mas a la derecha
+	     		break;
+	    }
+	    
+	    
+	    if (pixel.data[3] > 0) {
+    reproducirMuerte(); // Reproduce la música
+
+    setTimeout(() => {
+        window.location = window.location; // Recarga la página después de 2 segundos
+    }, 500); // 2000 milisegundos = 2 segundos
+}
+
+	});	
+	
+	          ////////////////////////////  CONDICIÓN DE MUERTE /////////////////////////////////
+
+	
+	
+    </script>
+  </body>
+</html>

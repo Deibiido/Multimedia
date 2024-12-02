@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="estilo.css">
+    <title>Multiplayer Checkers Game</title>
+  </head>
+  <body>
+      <audio id="sonidoficha" src="sonidoficha.mp3"></audio>
+    <select id="seleccionajugador">
+      <option>Selecciona un rol</option>
+      <option value="p1">Soy el jugador 1 (negras)</option>
+      <option value="p2">Soy el jugador 2 (blancas)</option>
+      <option value="p0">Soy un espectador</option>                                     <!-- Estas opciones son para poder escoger quien mueve las fichas -->
+    </select>
+    <div id="tablero"></div>
+
+    <script>
+                                                                                        //Variables globales
+                                                                                        //Audio de la ficha
+      const melodia = document.getElementById("sonidoficha");
+        melodia.playbackRate = 2;                                                     // Aumenta la velocidad (1.5 = 50% más rápido)
+          function reproducirSonido() {
+              console.log("Musica reproducida");
+            melodia.currentTime = 0;                                                    //Reinicia el sonido
+            melodia.play();                                                             //Inicia el sonido
+                }
+      var jugador = "";
+      var fichaseleccionada = null;                                                     //Esta variable es para saber que no tiene nada en la mano, así cuando escoja algo tendra la mano llena
+      var temporizador = null;
+
+      // Player selection
+      let selector = document.querySelector("#seleccionajugador");
+      selector.onchange = function () {
+        jugador = this.value;
+      };
+
+      // Initialize the board
+      let tablero = document.querySelector("#tablero");
+      for (let i = 0; i < 64; i++) {                                                    //Para crear el número requerido de celdas sin necesidad de ponerlas a mano
+        let elemento = document.createElement("div");
+        elemento.setAttribute("id", "celda" + i);
+
+        if ((i + Math.floor(i / 8)) % 2 == 0) {
+          elemento.classList.add("celdablanca");                                        //Como las celdas son blanca/nrega/blanca, ponemos que los pares son blancos y los impares negro
+        } else {
+          elemento.classList.add("celdanegra");
+        }
+
+        elemento.onclick = function (e) {
+          if (fichaseleccionada != null) {                                           
+            if (elemento.innerHTML == "") {
+              if (elemento.classList.contains("celdablanca")) {             
+                elemento.appendChild(fichaseleccionada);
+                fichaseleccionada = null;
+                  console.log("llego");
+                 reproducirSonido();                                         
+                enviarEstadoJuego();                                                    //Actualiza el estado del juego del servidor
+              }
+            }
+          }
+        };
+
+        if (
+          (i < 24 || i >= 40) &&
+          (i + Math.floor(i / 8)) % 2 == 0                                              //Con esto creamos las damas, una casilla no tiene, la siguiente sí, hasta que llegamos a las 3 filas
+        ) {
+          let ficha = document.createElement("article");
+          ficha.onclick = function (e) {
+            e.stopPropagation();
+            if (fichaseleccionada == null) {                                            //Si no tienes nada en la mano
+              
+              if (
+                (jugador === "p1" && ficha.classList.contains("fichanegra")) ||         //Solo jugador 1 puede negras
+                (jugador === "p2" && ficha.classList.contains("fichablanca")) ||        //Solo jugador 2 puede blancas
+                jugador === "p0"
+              ) {
+                fichaseleccionada = ficha;
+                this.parentElement.removeChild(this);                                   //Puedes coger la ficha
+              } else {
+                alert("No es tu turno o no puedes mover esta ficha.");                  //Si no se cumple las condiciones saca un desplegable que tienes que darle a aceptar
+              }
+            }
+          };
+          if (i < 24) {
+            ficha.classList.add("fichablanca");                                         //Todas las fichas que estén en las tres primeras filas son fichablanca
+          }
+          if (i >= 40) {
+            ficha.classList.add("fichanegra");                                          //Todas las fichas que estén en las tres últimas filas son fichanegra
+          }
+          elemento.appendChild(ficha);
+        }
+        tablero.appendChild(elemento);
+      }
+        
+      
+
+      function obtenerEstadoJuego() {                                                   //Función creada para obtener el estado de las cosas en un mensaje array
+        let fichas = document.querySelectorAll("article");
+        let mensaje = [];
+        for (let i = 0; i < fichas.length; i++) {
+          mensaje.push({                                                                //El mensaje contiene una lista de las fichas que hay y donde se localizan
+            clase: fichas[i].classList[0],
+            celda: fichas[i].parentElement.getAttribute("id"),
+          });
+        }
+        return mensaje;
+      }
+
+      
+      function actualizarEstadoJuego(mensaje) {                                         //Actualizar el juego de forma local en un mensaje array
+                                                                                        //Limpia todas las piezas del trablero
+        let celdas = document.querySelectorAll("#tablero div");
+        celdas.forEach((celda) => {                                                     //Por cada celda que haya vaciala
+          celda.innerHTML = "";
+        });
+        
+        mensaje.forEach((item) => {                                                     //Ahora recreamos el estado del juego mediante el mensaje array
+          let ficha = document.createElement("article");
+          ficha.classList.add(item.clase);
+          ficha.onclick = function (e) {
+            e.stopPropagation();
+            if (fichaseleccionada == null) {
+              
+              if (
+                (jugador === "p1" && ficha.classList.contains("fichanegra")) ||         //Solo el jugador 1 puede las negras
+                (jugador === "p2" && ficha.classList.contains("fichablanca")) ||        //Solo el jugador 2 puede las blancas
+                jugador === "p0"
+              ) {
+                fichaseleccionada = ficha;
+                this.parentElement.removeChild(this);
+              } else {
+                alert("No es tu turno o no puedes mover esta ficha.");                  //Si no se cumple las condiciones saca un desplegable que tienes que darle a aceptar
+              }
+            }
+          };
+          document
+            .getElementById(item.celda)
+            .appendChild(ficha);
+        });
+      }
+
+                                                                                        //Función para enviar los datos actuales al servidor
+      function enviarEstadoJuego() {
+        if (jugador === "p1" || jugador === "p2") {
+          let mensaje = obtenerEstadoJuego();
+          fetch("http://localhost:5000/update_board", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              mensaje: mensaje,
+              player: jugador,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data.message);
+            })
+            .catch((error) => {
+              console.error("Error updating board:", error);
+            });
+        }
+      }
+
+                                                                                        //fUNCION PARA BUSCAR LOS ULTIMOS DATOS DEL SERVIDOR
+      function obtenerEstadoDelServidor() {
+        fetch("http://localhost:5000/get_board")
+          .then((response) => response.json())
+          .then((data) => {
+            let mensajeServidor = data.mensaje;
+            let ultimoJugador = data.last_updated_by;
+
+            // Update the local game state if needed
+            let estadoLocal = obtenerEstadoJuego();
+
+            // Compare local and server state
+            if (
+              JSON.stringify(estadoLocal) !==
+              JSON.stringify(mensajeServidor)
+            ) {
+              actualizarEstadoJuego(mensajeServidor);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching board state:", error);
+          });
+      }
+
+                                                                                        //Funcion del bucle principal
+      function bucle() {
+                                                                                        //Busca regularmente el estado del servidor
+        obtenerEstadoDelServidor();
+
+                                                                                        // Set up the next iteration of the loop
+        temporizador = setTimeout(bucle, 1000);
+      }
+
+                                                                                        //Empieza el bucle inicial al seleccionar jugador
+      selector.onchange = function () {
+        jugador = this.value;
+        if (temporizador === null) {
+          bucle();
+        }
+      };
+    </script>
+  </body>
+</html>
+

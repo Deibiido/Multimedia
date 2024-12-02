@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Three.js</title>
+    <style>
+      body,html {
+        margin: 0px;padding:0px;overflow:hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+   
+
+<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+    <script  type="module">
+    import * as THREE from 'three';
+
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; //Importo los controles de órbita- no los estoy usando todavía
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';        //Importo el cargador de archivos GLTF
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';        //Importo cargador de texturas
+    
+    
+      const escena = new THREE.Scene();                                       //Creo una escena 3D
+      escena.background = new THREE.Color(0xcccccc);                          //Le pongo un fondo gris al proyecto
+      const camara = new THREE.PerspectiveCamera(                             //A la constante camara le pongo una nueva perspectiva
+        75, 
+        window.innerWidth / window.innerHeight, 
+        0.1, 
+        1000
+      );                                                                      //Camara, 75grados, proporcion como la pantalla, recorte cercano 0.1, rlejano 1000
+      const representador = new THREE.WebGLRenderer();                        //Creo un renderizador que usa WebGL
+      representador.setSize(
+        window.innerWidth, 
+        window.innerHeight
+        );                                                                    //Establezco la proporción del renderizador
+      document.body.appendChild(representador.domElement);                    //Y lo añado al body
+      
+      /*////////////////////// CARGAR TEXTURAS //////////////////////////*/
+      
+      const cargaTextura = new THREE.TextureLoader();                         //Creo una constante que es una nueva carga de textura
+      const texturasuelo = cargaTextura.load('suelo2.jpg');                    //Cargo la imagen que quiero que tenga esa textura, con eso tenemos una textura personalizada
+      
+      const cargaTexturaEsfera = new THREE.TextureLoader();                   //Creo una constante que es una nueva carga de textura
+      const texturaesfera = cargaTexturaEsfera.load('fondo2.jpg');             //Cargo la imagen que quiero que tenga esa textura, con eso tenemos una textura personalizada
+      
+      
+      /*////////////////////// CARGAR TEXTURAS //////////////////////////*/
+    
+      /*////////////////////// CREAMOS OBJETOS EN PANTALLA //////////////////////////*/
+      
+      const geometriaplano = new THREE.PlaneGeometry(50,50);                      //Creo un plano geometrico de 5 x 5
+      const materialplano = new THREE.MeshPhongMaterial({ map: texturasuelo }); //Le añado el material que he creado
+      const plano = new THREE.Mesh(geometriaplano, materialplano);              //Los fusiono
+      escena.add(plano);                                                        //Ahora añado el resultado
+      
+      plano.rotation.x = -Math.PI/2                                           //Giro -90 grados
+     plano.position.y = 0.5
+      
+      const geometria = new THREE.BoxGeometry();                              //Creo una caja geometrica
+      const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });      //Le añado un material Phong de color x
+      const cubo = new THREE.Mesh(geometria, material);                       //Los fusiono
+      escena.add(cubo);                                                       //Ahora añado el resultado
+      
+      cubo.position.y = 0.5                                                   // La posicion del cubo la elevo un poco sobre el suelo
+      
+      const geometriaesfera = new THREE.SphereGeometry(0.5, 32, 16);          //Creo una esfera
+      const materialesfera = new THREE.MeshPhongMaterial({ color: 0x00ff00 }); //Le añado un material Phong con un color x
+      const esfera = new THREE.Mesh(geometriaesfera,materialesfera)           //Los fusiono
+      esfera.position.x = 2                                                   //Muevo su x en dos
+      
+      escena.add(esfera);                                                     //Añado el resultado
+        
+      const geometriasol = new THREE.SphereGeometry(0.5, 15, 14);                               //Creo una esfera
+      const materialsol = new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffd700 }); //Le añado un material Phong con un color x
+      const sol = new THREE.Mesh(geometriasol,materialsol)                                      //Los fusiono
+      sol.position.y = 7                                                                        //Muevo su x en dos
+      
+      escena.add(sol); 
+      
+      const geometriaentornoesferico = new THREE.SphereGeometry(45, 32, 16);          //Creo una esfera (esta es la edl cielo)
+      const materialesferaentorno = new THREE.MeshBasicMaterial({ map: texturaesfera ,side: THREE.BackSide}); //Le añado un material Phong de color x
+      const esferaentorno = new THREE.Mesh(geometriaentornoesferico,materialesferaentorno)           //Los fusiono
+      
+      escena.add(esferaentorno);                                                      //Y los añado
+      /*////////////////////// CREAMOS OBJETOS EN PANTALLA //////////////////////////*/ 
+      
+        /*////////////////////// CARGAMOS OBJETOS EXTERNOS //////////////////////////*/ 
+        
+        const loader = new GLTFLoader();                                      // Creo un nuevo cargador externo
+      loader.load(
+          'mono2.glb',                                                        // Path to the .glb file
+          function (gltf) {                                                   // Cuando ha cargado
+              escena.add(gltf.scene);                                         // Add the loaded scene to your Three.js scene
+              escena.add( pointLight ); 
+          },
+          function (xhr) {
+              console.log((xhr.loaded / xhr.total * 100) + '% loaded');       // Optional: Track progress
+          },
+          function (error) {
+              console.error('An error happened while loading the GLB model', error);
+          }
+      );
+      
+      const loader2 = new GLTFLoader();                                       // Creo un nuevo cargador externo
+      loader2.load(
+          'laberinto.glb',                                                    // Path to the .glb file
+          function (gltf) {                                                   // Cuando ha cargado
+              escena.add(gltf.scene);                                         // Add the loaded scene to your Three.js scene
+              escena.add( pointLight ); 
+          },
+          function (xhr) {
+              console.log((xhr.loaded / xhr.total * 100) + '% loaded');       // Optional: Track progress
+          },
+          function (error) {
+              console.error('An error happened while loading the GLB model', error);
+          }
+      );
+      
+      /*////////////////////// CARGAMOS OBJETOS EXTERNOS //////////////////////////*/ 
+      
+      /*////////////////////// CREAMOS LUCES EN PANTALLA //////////////////////////*/ 
+      
+      const pointLight = new THREE.PointLight( 0xffffff, 300, 100 );            // Creo una luz puntual infinitamente pequeña
+      pointLight.position.set( 0, 20, 0 );                                     // La luz está situada 5 unidades en Y
+                                                         
+      
+      const light = new THREE.AmbientLight( 0x404040 );                       // Creo una nueva luz ambiental
+      escena.add( light );                                                    // y la añado a la escena
+      
+     /*////////////////////// CREAMOS LUCES EN PANTALLA //////////////////////////*/ 
+      
+      // Controles para mover al jugador con las teclas del teclado ////////////////////////////////
+      let x = 0                                                             //Posición x de la camara
+      let z = 5                                                             //Posición z de la camara (z en threejs, y de normal)
+      let angulo = 0;                                                       //Angulo de la z de la camara
+      let paso = 0.1;                                                       // Velocidad en angulos de avance
+      document.onkeydown = function(e){                                     // Cuando pulso una tecla
+        if(e.key == "ArrowUp"){                                             // Si la tecla es flecha arriba   
+          x -= Math.sin(angulo)*paso                                        // Actualizo trigonometría de la x restandole el resultado de la operacion a x
+          z -= Math.cos(angulo)*paso                                        // Actualizo trigonometria de la y restandole el resultado de la operacion a z
+        }
+        if(e.key == "ArrowDown"){                                             // Si la tecla es flecha abajo 
+          x += Math.sin(angulo)*paso                                        // Actualizo trigonometría de la x
+          z += Math.cos(angulo)*paso                                        // Actualizo trigonometria de la y
+        }
+        if(e.key == "ArrowLeft"){angulo += 0.05}         // Esto es lo que ocurre cuando el jugador pulsa la flecha izquierda
+        if(e.key == "ArrowRight"){angulo -= 0.05}           // Esto es lo que ocurre cuando el jugador pulsa la flecha derecha
+      }
+      
+      // Controles para mover al jugador con las teclas del teclado ////////////////////////////////
+      
+      
+      camara.position.y = 7;                                                  //Subo el POV para que no esté abajo
+      
+      function animar() {                                                     // Realmente es la función de bucle
+      camara.position.x = x                                                   //Cambio la X del jugador
+      camara.position.z = z                                                   //Cambio la Z del jugador
+        camara.rotation.y = angulo                                            //Cambio la rotacion de la camara
+
+        requestAnimationFrame(animar);                                        //Llama de nuevo al bucle en cuanto puedas
+        representador.render(escena, camara);                                 //Renderizar la escena desde la perspectiva de la cámara
+      }
+      animar();                                                               //Iniciar la animación
+    </script>
+  </body>
+</html>
