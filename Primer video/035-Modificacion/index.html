@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      canvas{border:1px solid grey;position:absolute;top:0px;left:0px;}
+    </style>
+  </head>
+  <body>
+      <audio id="musicaFondo" src="audio/musica.mp3" loop></audio>
+      <script>
+        // Selecciona el elemento de audio
+        var musica = document.getElementById("musicaFondo");
+
+        // Reproducir la música al cargar el juego
+                musica.volume = 0.5; // Volumen moderado
+        musica.play();
+          musica.onplay = function() {
+    console.log("La música se está reproduciendo");
+};
+
+musica.onerror = function() {
+    console.error("Error al cargar o reproducir el audio");
+};
+      </script>
+    <script src="js/funciones.js"></script>
+    <script src="js/Clases/Jugador.js"></script>
+    <script src="js/Clases/Npc.js"></script>
+    <script src="js/Clases/Bala.js"></script>
+    <canvas id="lienzofondo"></canvas>
+    <canvas id="lienzoplataformas"></canvas>
+    <canvas id="lienzo1"></canvas>
+    <canvas id="lienzo2"></canvas>
+    <script src="js/cargaimagenes.js"></script>
+    <script src="js/declaracionesiniciales.js"></script>
+    <script src="js/lienzos.js"></script>
+    <script src="js/controles.js"></script>
+    <script src="js/bucle.js"></script>
+  </body>
+</html>
